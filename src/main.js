@@ -1,27 +1,28 @@
-import {
-    render,
-    RenderPosition
-  } from './render.js';
-  import TripInfoView from './view/trip.js';
-  import FiltersView from './view/filter.js';
-  import PointsPresenter from './presenter/board-presenter.js';
-  import PointsModel from './model/event-points-model.js';
-  import OffersModel from './model/offers-model.js';
-  import DestinationsModel from './model/destinations-model.js';
-  const tripMainContainer = document.querySelector('.trip-main');
-  const tripEventsContainer = document.querySelector('.trip-events');
-  const filtersContainer = tripMainContainer.querySelector('.trip-controls__filters');
-  const pointsModel = new PointsModel();
-  const offersModel = new OffersModel();
-  const destinationsModel = new DestinationsModel();
-  const pointsPresenter = new PointsPresenter({
-    tripEventsContainer,
-    pointsModel,
-    offersModel,
-    destinationsModel
-  });
-  
-  render(new TripInfoView(), tripMainContainer, RenderPosition.AFTERBEGIN);
-  render(new FiltersView(), filtersContainer);
-  
-  pointsPresenter.init();
+import PointsModel from './model/points-model.js';
+import OffersModel from './model/offers-model.js';
+import DestinationsModel from './model/destinations-model.js';
+import PointsPresenter from './presenter/points-presenter.js';
+import FiltersPresenter from './presenter/filters-presenter.js';
+import TripInfoPresenter from './presenter/trip-info-presenter.js';
+import MockService from './service/mock-service.js';
+
+const mockService = new MockService();
+const pointsModel = new PointsModel(mockService);
+const offersModel = new OffersModel(mockService);
+const destinationsModel = new DestinationsModel(mockService);
+
+const pointsContainer = document.querySelector('.trip-events');
+
+const pointsPresenter = new PointsPresenter({
+  pointsContainer,
+  pointsModel,
+  offersModel,
+  destinationsModel
+});
+
+const filtersPresenter = new FiltersPresenter();
+const tripInfoPresenter = new TripInfoPresenter();
+
+pointsPresenter.init();
+filtersPresenter.init();
+tripInfoPresenter.init();
