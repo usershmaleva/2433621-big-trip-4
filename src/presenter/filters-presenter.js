@@ -22,6 +22,7 @@ export default class FiltersPresenter {
       }));
   }
 
+
   init() {
     render(new FiltersView({
       items: this.#filters

@@ -1,4 +1,5 @@
 import Observable from '../framework/observable.js';
+import { deleteItem, updateItem } from '../utils.js';
 
 export default class PointsModel extends Observable {
   #service = null;
@@ -14,13 +15,19 @@ export default class PointsModel extends Observable {
     return this.#points;
   }
 
-  add(point) {
+  add(type, point) {
     this.#points.push(point);
-    this._notify(point);
+    this._notify(type, point);
   }
 
-  delete(point) {
-    this.#points = this.#points.filter((item) => item.id !== point.id);
-    this._notify(point);
+  update(type, point) {
+    this.#points = updateItem(this.#points, point);
+    this._notify(type, point);
+  }
+
+  delete(type, point) {
+    this.#points = deleteItem(this.#points, point);
+    this._notify(type, point);
   }
 }
+
