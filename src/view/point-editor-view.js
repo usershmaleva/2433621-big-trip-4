@@ -249,7 +249,7 @@ export default class PointEditorView extends AbstractStatefulView {
   };
 
   #eventTypeChangeHandler = (evt) => {
-    this.#updatePoint('type', evt.target.value);
+    this.#updatePoint({ type: evt.target.value, offers: [] });
   };
 
   #destinationChangeHandler = (evt) => {
@@ -260,24 +260,18 @@ export default class PointEditorView extends AbstractStatefulView {
       ? currentDestination.id
       : this._state.destination;
 
-    this.#updatePoint('destination', currentDestinationId);
+    this.#updatePoint({ destination: currentDestinationId });
   };
 
   #offersChangeHandler = () => {
     const checkedOffers = Array.from(
       this.element.querySelectorAll('.event__offer-checkbox:checked')
     );
-    this.#updatePoint(
-      'offers',
-      checkedOffers.map((offer) => offer.id),
-    );
+    this.#updatePoint({ offers: checkedOffers.map((offer) => offer.id) });
   };
 
   #priceChangeHandler = (evt) => {
-    this._setState({
-      ...this._state,
-      basePrice: evt.target.valueAsNumber
-    });
+    this.#updatePoint({ basePrice: parseInt(evt.target.value, 10) });
   };
 
   #bindDatepickers = () => {
@@ -315,18 +309,18 @@ export default class PointEditorView extends AbstractStatefulView {
   };
 
   #startDateCloseHandler = ([enteredDate]) => {
-    this.#updatePoint('dateFrom', enteredDate);
+    this.#updatePoint({ dateFrom: enteredDate });
     this.#datepickerTo.set('minDate', this._state.dateFrom);
   };
 
   #endDateCloseHandler = ([enteredDate]) => {
-    this.#updatePoint('dateTo', enteredDate);
+    this.#updatePoint({ dateTo: enteredDate });
     this.#datepickerFrom.set('maxDate', this._state.dateTo);
   };
 
   #validatePoint = () => REQUIRED_POINT_FIELDS.every((field) => !!this._state[field]);
 
-  #updatePoint = (key, value) => {
-    this.updateElement({ ...this._state, [key]: value });
+  #updatePoint = (update) => {
+    this.updateElement({ ...this._state, ...update });
   };
 }
