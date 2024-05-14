@@ -1,4 +1,5 @@
 const path = require('path');
+const HtmlPlugin = require('html-webpack-plugin');
 const CopyPlugin = require('copy-webpack-plugin');
 
 module.exports = {
@@ -11,21 +12,19 @@ module.exports = {
   devtool: 'source-map',
   plugins: [
     new HtmlPlugin({
-        template: 'public/index.html',
-      }),
-      new CopyPlugin({
-        patterns: [{ from: 'public' }],
-        patterns: [
-          {
-            from: 'public',
-            globOptions: {
-              ignore: ['**/index.html'],
-            }}],
-          }),
-    ],
+      template: 'public/index.html',
+    }),
+    new CopyPlugin({
+      patterns: [{
+        from: 'public',
+        globOptions: {
+          ignore: ['**/index.html'],
+        },
+      }, ],
+    }),
+  ],
   module: {
-    rules: [
-      {
+    rules: [{
         test: /\.js$/,
         exclude: /(node_modules)/,
         use: {
@@ -35,6 +34,10 @@ module.exports = {
           },
         },
       },
-    ]
-  }
+      {
+        test: /\.css$/i,
+        use: ['style-loader', 'css-loader']
+      },
+    ],
+  },
 };
