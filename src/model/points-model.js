@@ -1,5 +1,6 @@
+import { UpdateType } from '../const.js';
 import Observable from '../framework/observable.js';
-import { deleteItem, updateItem } from '../utils.js';
+import { deleteItem, mapApiPointData, updateItem } from '../utils.js';
 
 export default class PointsModel extends Observable {
   #service = null;
@@ -8,7 +9,19 @@ export default class PointsModel extends Observable {
   constructor(service) {
     super();
     this.#service = service;
-    this.#points = this.#service.points;
+  }
+
+  async init() {
+    try {
+      const data = await this.#service.points;
+      const points = data.map(mapApiPointData);
+      this.#points = points;
+      this._notify(UpdateType.INIT, { data: points });
+
+    } catch (err) {
+      this.#points = [];
+      this._notify(UpdateType.INIT, { error: err });
+    }
   }
 
   get() {

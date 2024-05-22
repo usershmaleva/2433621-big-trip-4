@@ -1,3 +1,4 @@
+import { UpdateType } from '../const.js';
 import Observable from '../framework/observable.js';
 import { deleteItem, updateItem } from '../utils.js';
 
@@ -8,7 +9,18 @@ export default class DestinationsModel extends Observable {
   constructor(service) {
     super();
     this.#service = service;
-    this.#destinations = this.#service.destinations;
+  }
+
+  async init() {
+    try {
+      const destinations = await this.#service.destinations;
+      this.#destinations = destinations;
+      this._notify(UpdateType.INIT, { data: destinations });
+
+    } catch (err) {
+      this.#destinations = [];
+      this._notify(UpdateType.INIT, { error: err });
+    }
   }
 
   get() {
