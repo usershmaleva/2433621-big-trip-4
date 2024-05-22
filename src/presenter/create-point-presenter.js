@@ -1,4 +1,4 @@
-import { EditType, POINT_DUMMY, UpdateType } from '../const.js';
+import { EditType, POINT_DUMMY, UserAction } from '../const.js';
 import {
   RenderPosition,
   remove,
@@ -10,38 +10,44 @@ import PointEditorView from '../view/point-editor-view.js';
 export default class CreatePointPresenter {
   #container = null;
   #editorContainer = null;
-  #pointsModel = null;
   #destinationsModel = null;
   #offersModel = null;
   #createPointButtonComponent = null;
   #pointEditorComponent = null;
+  #onUserAction = null;
 
-  constructor({ container, editorContainer, pointsModel, destinationsModel, offersModel }) {
+  constructor({ container, editorContainer, destinationsModel, offersModel }) {
     this.#container = container;
     this.#editorContainer = editorContainer;
-    this.#pointsModel = pointsModel;
     this.#destinationsModel = destinationsModel;
     this.#offersModel = offersModel;
   }
 
-  init() {
+  init(onUserAction) {
     if (this.#createPointButtonComponent) {
       throw new Error('Cannot init create point button twice');
     }
 
+    this.#onUserAction = onUserAction;
     this.#createPointButtonComponent = new CreatePointButtonView({ onClick: this.#createPointClickHandler });
     render(this.#createPointButtonComponent, this.#container);
   }
 
-  destroy() {
+  resetView() {
     if (!this.#pointEditorComponent) {
       return;
     }
 
     remove(this.#pointEditorComponent);
     this.#pointEditorComponent = null;
-
     document.removeEventListener('keydown', this.#escKeyDownHandler);
+    this.setButtonDisabled(false);
+  }
+
+  triggerError() {
+    this.#pointEditorComponent.shake(() => {
+      this.#pointEditorComponent.setCreating(false);
+    });
   }
 
   setButtonDisabled(disabled) {
@@ -49,6 +55,10 @@ export default class CreatePointPresenter {
   }
 
   #createPointClickHandler = () => {
+    if (this.#pointEditorComponent) {
+      return;
+    }
+
     this.#pointEditorComponent = new PointEditorView({
       point: POINT_DUMMY,
       destinations: this.#destinationsModel.get(),
@@ -61,21 +71,22 @@ export default class CreatePointPresenter {
 
     render(this.#pointEditorComponent, this.#editorContainer, RenderPosition.AFTERBEGIN);
     document.addEventListener('keydown', this.#escKeyDownHandler);
+    this.setButtonDisabled(true);
   };
 
   #cancelClickHandler = () => {
-    this.destroy();
+    this.resetView();
   };
 
-  #formSubmitHandler = (point) => {
-    this.#pointsModel.add(UpdateType.MAJOR, point);
-    this.destroy();
+  #formSubmitHandler = async (point) => {
+    this.#pointEditorComponent.setCreating(true);
+    await this.#onUserAction(UserAction.CREATE_POINT, point);
   };
 
   #escKeyDownHandler = (evt) => {
     if (evt.key === 'Escape') {
       evt.preventDefault();
-      this.destroy();
+      this.resetView();
     }
   };
 }

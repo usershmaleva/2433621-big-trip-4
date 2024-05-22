@@ -22,7 +22,6 @@ const tripMainContainer = document.querySelector('.trip-main');
 const createPointPresenter = new CreatePointPresenter({
   container: tripMainContainer,
   editorContainer: pointsContainer,
-  pointsModel,
   offersModel,
   destinationsModel,
 });

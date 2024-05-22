@@ -4,11 +4,12 @@ import {
 } from '../framework/render.js';
 import EventsListView from '../view/events-list-view.js';
 import EventsListEmptyView from '../view/events-list-empty-view.js';
-import { SORTING_COLUMNS, SortType, UpdateType } from '../const.js';
+import { SORTING_COLUMNS, SortType, UiBlockerLimit, UpdateType, UserAction } from '../const.js';
 import PointPresenter from './point-presenter.js';
 import { filterByType, sortByType } from '../utils.js';
 import SortingView from '../view/sorting-view.js';
 import LoaderView from '../view/loader-view.js';
+import UiBlocker from '../framework/ui-blocker/ui-blocker.js';
 
 
 export default class RoutePresenter {
@@ -21,6 +22,11 @@ export default class RoutePresenter {
   #currentSortType = SortType.DAY;
   #loaderComponent = new LoaderView();
   #listComponent = new EventsListView();
+  #uiBlocker = new UiBlocker({
+    lowerLimit: UiBlockerLimit.LOWER,
+    upperLimit: UiBlockerLimit.UPPER,
+  });
+
   #sortingComponent = null;
   #pointsPresenters = new Map();
   #isLoading = true;
@@ -54,7 +60,7 @@ export default class RoutePresenter {
   }
 
   init() {
-    this.#createPointPresenter.init();
+    this.#createPointPresenter.init(this.#userActionHandler);
     this.#renderRoute();
   }
 
@@ -118,8 +124,7 @@ export default class RoutePresenter {
       container: this.#listComponent.element,
       destinationsModel: this.#destinationsModel,
       offersModel: this.#offersModel,
-      onPointChange: this.#pointChangeHandler,
-      onPointDelete: this.#pointDeleteHandler,
+      onUserAction: this.#userActionHandler,
       onEditorOpen: this.#pointEditHandler,
     });
 
@@ -127,16 +132,48 @@ export default class RoutePresenter {
     this.#pointsPresenters.set(point.id, pointPresenter);
   }
 
+  #userActionHandler = async (actionType, data) => {
+    this.#uiBlocker.block();
+    let presenter;
+    try {
+      switch (actionType) {
+        case UserAction.CREATE_POINT:
+          presenter = this.#createPointPresenter;
+          await this.#createPointHandler(data);
+          break;
+
+        case UserAction.UPDATE_POINT:
+          presenter = this.#pointsPresenters.get(data.id);
+          await this.#updatePointHandler(data);
+          break;
+
+        case UserAction.DELETE_POINT:
+          presenter = this.#pointsPresenters.get(data.id);
+          await this.#deletePointHandler(data);
+          break;
+        default:
+          throw new Error(`RoutePresenter - unknown user action: ${actionType}`);
+      }
+      presenter.resetView();
+    } catch (err) {
+      presenter.triggerError();
+      this.#isError = true;
+    }
+
+    this.#uiBlocker.unblock();
+  };
+
+  #createPointHandler = (data) =>
+    this.#pointsModel.create(UpdateType.MAJOR, data);
+
+  #updatePointHandler = (data) =>
+    this.#pointsModel.update(UpdateType.MINOR, data);
+
+  #deletePointHandler = (data) =>
+    this.#pointsModel.delete(UpdateType.MAJOR, data);
+
   #pointEditHandler = () => {
     this.#pointsPresenters.forEach((presenter) => presenter.resetView());
-  };
-
-  #pointChangeHandler = (updatedPoint) => {
-    this.#pointsModel.update(UpdateType.MINOR, updatedPoint);
-  };
-
-  #pointDeleteHandler = (deletedPoint) => {
-    this.#pointsModel.delete(UpdateType.MAJOR, deletedPoint);
   };
 
   #sortChangeHandler = (sortType) => {
@@ -147,10 +184,13 @@ export default class RoutePresenter {
   };
 
   #pointsModelEventHandler = (type, data) => {
+    if (this.#isError || data.error) {
+      return;
+    }
+
     switch (type) {
       case UpdateType.INIT:
         this.#isLoading = false;
-        this.#isError = !!data.error;
         remove(this.#loaderComponent);
         this.#renderRoute();
         break;
