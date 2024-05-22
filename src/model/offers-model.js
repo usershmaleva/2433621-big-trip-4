@@ -1,3 +1,4 @@
+import { UpdateType } from '../const.js';
 import Observable from '../framework/observable.js';
 import { deleteItem, updateItem } from '../utils.js';
 
@@ -8,7 +9,18 @@ export default class OffersModel extends Observable {
   constructor(service) {
     super();
     this.#service = service;
-    this.#offers = this.#service.offers;
+  }
+
+  async init() {
+    try {
+      const offers = await this.#service.offers;
+      this.#offers = offers;
+      this._notify(UpdateType.INIT, { data: offers });
+
+    } catch (err) {
+      this.#offers = [];
+      this._notify(UpdateType.INIT, { error: err });
+    }
   }
 
   get() {

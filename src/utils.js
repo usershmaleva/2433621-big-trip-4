@@ -89,6 +89,22 @@ const sortByType = {
 const updateItem = (items, update) => items.map((item) => item.id === update.id ? update : item);
 const deleteItem = (items, del) => items.filter((item) => item.id !== del.id);
 
+const camelise = (string) => string.replace(/_([a-z])/g, (result) => result[1].toUpperCase());
+const deepCamelise = (object) => {
+  if (typeof object !== 'object' || object === null) {
+    return object;
+  }
+
+  if (Array.isArray(object)) {
+    return object.map(deepCamelise);
+  }
+
+  const res = Object.fromEntries(Object.entries(object).map(([key, value]) => [camelise(key), deepCamelise(value)]));
+  return res;
+};
+
+const mapApiPointData = (point) => deepCamelise(point);
+
 export {
   getRandomArrayElement,
   getRandomPositiveNumber,
@@ -101,4 +117,5 @@ export {
   sortByType,
   updateItem,
   deleteItem,
+  mapApiPointData,
 };

@@ -9,6 +9,22 @@ const POINTS_COUNT = 5;
 const MAX_PRICE_VALUE = 200;
 const MAX_IMAGES_COUNT = 5;
 
+const AUTH_TOKEN = 'Basic dXNlckBwYXNzd29yZAo=';
+const API_HOST = 'https://21.objects.htmlacademy.pro/big-trip';
+
+const HttpMethod = {
+  GET: 'GET',
+  PUT: 'PUT',
+  POST: 'POST',
+  DELETE: 'DELETE',
+};
+
+const Endpoint = {
+  POINTS: 'points',
+  OFFERS: 'offers',
+  DESTINATIONS: 'destinations',
+};
+
 const EVENT_TYPES = [
   'taxi',
   'bus',
@@ -79,7 +95,6 @@ const SortType = {
 const FilterSettings = {
   [FilterType.ANY]: {
     label: 'Everything',
-    defaultSelected: true,
   },
   [FilterType.FUTURE]: { label: 'Future' },
   [FilterType.PRESENT]: { label: 'Present' },
@@ -168,4 +183,8 @@ export {
   MSEC_IN_HOUR,
   MSEC_IN_DAY,
   UpdateType,
+  AUTH_TOKEN,
+  API_HOST,
+  HttpMethod,
+  Endpoint,
 };

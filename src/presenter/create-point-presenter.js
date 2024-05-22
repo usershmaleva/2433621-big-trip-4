@@ -44,6 +44,10 @@ export default class CreatePointPresenter {
     document.removeEventListener('keydown', this.#escKeyDownHandler);
   }
 
+  setButtonDisabled(disabled) {
+    this.#createPointButtonComponent.setDisabled(disabled);
+  }
+
   #createPointClickHandler = () => {
     this.#pointEditorComponent = new PointEditorView({
       point: POINT_DUMMY,
