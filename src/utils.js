@@ -89,7 +89,7 @@ const sortByType = {
 const updateItem = (items, update) => items.map((item) => item.id === update.id ? update : item);
 const deleteItem = (items, del) => items.filter((item) => item.id !== del.id);
 
-const camelise = (string) => string.replace(/_([a-z])/g, (result) => result[1].toUpperCase());
+const convertSnakeCaseToCamelCase = (string) => string.replace(/_([a-z])/g, (result) => result[1].toUpperCase());
 const deepCamelise = (object) => {
   if (typeof object !== 'object' || object === null) {
     return object;
@@ -99,11 +99,26 @@ const deepCamelise = (object) => {
     return object.map(deepCamelise);
   }
 
-  const res = Object.fromEntries(Object.entries(object).map(([key, value]) => [camelise(key), deepCamelise(value)]));
+  const res = Object.fromEntries(Object.entries(object).map(([key, value]) => [convertSnakeCaseToCamelCase(key), deepCamelise(value)]));
   return res;
 };
 
-const mapApiPointData = (point) => deepCamelise(point);
+const convertCamelCaseToSnakeCase = (string) => string.replace(/[A-Z]/g, (result) => `_${result.toLowerCase()}`);
+const deepSnake = (object) => {
+  if (typeof object !== 'object' || object === null) {
+    return object;
+  }
+
+  if (Array.isArray(object)) {
+    return object.map(deepSnake);
+  }
+
+  const res = Object.fromEntries(Object.entries(object).map(([key, value]) => [convertCamelCaseToSnakeCase(key), deepSnake(value)]));
+  return res;
+};
+
+const mapApiDataToPoint = (data) => deepCamelise(data);
+const mapPointToApiData = (point) => deepSnake(point);
 
 export {
   getRandomArrayElement,
@@ -117,5 +132,6 @@ export {
   sortByType,
   updateItem,
   deleteItem,
-  mapApiPointData,
+  mapApiDataToPoint,
+  mapPointToApiData
 };

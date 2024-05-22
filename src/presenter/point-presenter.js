@@ -1,15 +1,14 @@
 import { remove, render, replace } from '../framework/render.js';
 import PointView from '../view/point-view.js';
 import PointEditorView from '../view/point-editor-view.js';
-import { PointMode } from '../const.js';
+import { EditType, PointMode, UserAction } from '../const.js';
 
 export default class PointPresenter {
   #container = null;
   #pointComponent = null;
   #pointEditorComponent = null;
   #point = null;
-  #onPointChange = null;
-  #onPointDelete = null;
+  #onUserAction = null;
   #onEditorOpen = null;
   #destinationsModel = null;
   #offersModel = null;
@@ -19,15 +18,13 @@ export default class PointPresenter {
     container,
     destinationsModel,
     offersModel,
-    onPointChange,
-    onPointDelete,
+    onUserAction,
     onEditorOpen,
   }) {
     this.#container = container;
     this.#destinationsModel = destinationsModel;
     this.#offersModel = offersModel;
-    this.#onPointChange = onPointChange;
-    this.#onPointDelete = onPointDelete;
+    this.#onUserAction = onUserAction;
     this.#onEditorOpen = onEditorOpen;
   }
 
@@ -74,6 +71,18 @@ export default class PointPresenter {
     }
   }
 
+  triggerError() {
+    if(this.#mode !== PointMode.EDITABLE) {
+      this.#pointComponent.shake();
+      return;
+    }
+
+    this.#pointEditorComponent.shake(() => {
+      this.#pointEditorComponent.setDeleting(false);
+      this.#pointEditorComponent.setUpdating(false);
+    });
+  }
+
   #createPointView() {
     return new PointView({
       point: this.#point,
@@ -92,6 +101,7 @@ export default class PointPresenter {
       onCloseClick: this.#pointCloseHandler,
       onDeleteClick: this.#pointDeleteHandler,
       onSubmitForm: this.#pointSubmitHandler,
+      mode: EditType.EDITING,
     });
   }
 
@@ -120,19 +130,20 @@ export default class PointPresenter {
   };
 
   #pointSubmitHandler = (point) => {
-    this.#onPointChange(point);
-    this.#replaceEditorByPoint();
+    this.#pointEditorComponent.setUpdating(true);
+    this.#onUserAction(UserAction.UPDATE_POINT, point);
+  };
+
+  #pointDeleteHandler = (point) => {
+    this.#pointEditorComponent.setDeleting(true);
+    this.#onUserAction(UserAction.DELETE_POINT, point);
   };
 
   #pointCloseHandler = () => {
     this.#replaceEditorByPoint();
   };
 
-  #pointDeleteHandler = (point) => {
-    this.#onPointDelete(point);
-  };
-
   #pointFavoriteToggleHandler = (isFavorite) => {
-    this.#onPointChange({ ...this.#point, isFavorite });
+    this.#onUserAction(UserAction.UPDATE_POINT, { ...this.#point, isFavorite });
   };
 }
