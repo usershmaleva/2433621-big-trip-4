@@ -7,7 +7,8 @@ import {
   DateFormat,
   DurationFormat,
   FilterType,
-  SortType
+  SortType,
+  DESTINATIONS_NAMES_MAX_COUNT
 } from './const.js';
 
 dayjs.extend(duration);
@@ -117,6 +118,34 @@ const deepSnake = (object) => {
   return res;
 };
 
+const getRouteLabel = (sortedPoints, destinations) => {
+  const pointsDestinations = sortedPoints
+    .map((point) => destinations.find((destination) => destination.id === point.destination)?.name);
+
+  if (pointsDestinations.length <= DESTINATIONS_NAMES_MAX_COUNT) {
+    return pointsDestinations.join(' &mdash; ');
+  }
+  return `${pointsDestinations.at(0)}&nbsp;&mdash;&nbsp;...&nbsp;&mdash;&nbsp;${pointsDestinations.at(-1)}`;
+};
+
+const getDurationPeriod = (sortedPoints) => {
+  if (!sortedPoints.length) {
+    return '';
+  }
+
+  const startDateTime = dayjs(sortedPoints[0].dateFrom).format(DateFormat.SHORT);
+  if (sortedPoints.length === 1) {
+    return startDateTime;
+  }
+
+  return `${startDateTime}&nbsp;&mdash;&nbsp;${dayjs(sortedPoints.at(-1).dateTo).format(DateFormat.SHORT)}`;
+};
+const getPointOffersCost = (pointOffersIds, offers) => pointOffersIds.reduce((offerCost, id) => offerCost + (offers.find((offer) => offer.id === id)?.price ?? 0), 0);
+const getTotalPointsCost = (points, offers) => points.reduce((total, point) => {
+  const typeOffers = offers.find((offer) => offer.type === point.type)?.offers ?? [];
+  return total + point.basePrice + getPointOffersCost(point.offers, typeOffers);
+}, 0);
+
 const mapApiDataToPoint = (data) => deepCamelise(data);
 const mapPointToApiData = (point) => deepSnake(point);
 
@@ -132,6 +161,9 @@ export {
   sortByType,
   updateItem,
   deleteItem,
+  getRouteLabel,
+  getDurationPeriod,
+  getTotalPointsCost,
   mapApiDataToPoint,
   mapPointToApiData
 };

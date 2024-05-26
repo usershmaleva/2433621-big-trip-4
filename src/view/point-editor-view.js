@@ -326,12 +326,12 @@ export default class PointEditorView extends AbstractStatefulView {
   };
 
   #startDateCloseHandler = ([enteredDate]) => {
-    this.#updatePoint({ dateFrom: enteredDate.toISOString() });
+    this.#updatePoint({ dateFrom: enteredDate?.toISOString() });
     this.#datepickerTo.set('minDate', this._state.point.dateFrom);
   };
 
   #endDateCloseHandler = ([enteredDate]) => {
-    this.#updatePoint({ dateTo: enteredDate.toISOString() });
+    this.#updatePoint({ dateTo: enteredDate?.toISOString() });
     this.#datepickerFrom.set('maxDate', this._state.point.dateTo);
   };
 
