@@ -172,6 +172,9 @@ const UiBlockerLimit = {
   UPPER: 1000,
 };
 
+const DESTINATIONS_NAMES_MAX_COUNT = 3;
+
+
 export {
   POINTS_COUNT,
   EVENT_TYPES,
@@ -200,4 +203,5 @@ export {
   Endpoint,
   UserAction,
   UiBlockerLimit,
+  DESTINATIONS_NAMES_MAX_COUNT,
 };

@@ -74,23 +74,11 @@ export default class FiltersPresenter {
     this.#filtersModel.set(UpdateType.MAJOR, filterType);
   };
 
-  #pointsModelEventHandler = (type) => {
-    switch (type) {
-      case UpdateType.INIT:
-        this.#update();
-        break;
-    }
+  #pointsModelEventHandler = () => {
+    this.#update();
   };
 
-  #filtersModelEventHandler = (type) => {
-    switch (type) {
-      case UpdateType.INIT:
-      case UpdateType.PATCH:
-      case UpdateType.MINOR:
-      case UpdateType.MAJOR:
-      default:
-        this.#update();
-        break;
-    }
+  #filtersModelEventHandler = () => {
+    this.#update();
   };
 }
