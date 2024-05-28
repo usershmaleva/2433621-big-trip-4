@@ -1,137 +1,87 @@
 import dayjs from 'dayjs';
 import duration from 'dayjs/plugin/duration';
-import relativetime from 'dayjs/plugin/relativeTime';
-import {
-  MSEC_IN_HOUR,
-  MSEC_IN_DAY,
-  DateFormat,
-  DurationFormat,
-  FilterType,
-  SortType
-} from './const.js';
+import { FILTER_TYPES, TIME } from './const';
 
 dayjs.extend(duration);
-dayjs.extend(relativetime);
 
-const getRandomArrayElement = (items) => items[Math.floor(Math.random() * items.length)];
-const getRandomPositiveNumber = (min = 0, max = 1) => {
-  const lower = Math.ceil(Math.min(min, max));
-  const upper = Math.floor(Math.max(min, max));
-  return Math.floor(lower + Math.random() * (upper - lower + 1));
-};
-const getRandomDate = (start = new Date(2023, 3, 1), end = new Date(2023, 4, 1)) => new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-const formatDate = (currentDate, format = DateFormat.FULL) => dayjs(currentDate).format(format);
+const convertEventDateForEditForm = (date) =>
+  dayjs(date).format('DD/MM/YY HH:mm');
+const convertEventDateIntoHour = (date) => dayjs(date).format('HH:mm');
+const convertEventDateIntoDay = (date) => dayjs(date).format('MMM D');
+const subtractDates = (dateFrom, dateTo) => {
+  const diffInTotalMinutes = Math.ceil(
+    dayjs(dateTo).diff(dayjs(dateFrom), 'minute', true)
+  );
+  const diffInHours =
+    Math.floor(diffInTotalMinutes / TIME.MINUTES) % TIME.HOURS;
+  const diffInDays = Math.floor(
+    diffInTotalMinutes / (TIME.MINUTES * TIME.HOURS)
+  );
 
-const getDatesDiff = (dateStringFrom, dateStringTo) => dayjs(dateStringTo).diff(dayjs(dateStringFrom));
-const getDuration = (dateStringFrom, dateStringTo) => dayjs.duration(getDatesDiff(dateStringFrom, dateStringTo));
-
-const calculateDuration = (dateFrom, dateTo) => {
-  const diff = getDatesDiff(dateFrom, dateTo);
-
-  let pointDuration;
-
-  switch (true) {
-    case (diff >= MSEC_IN_DAY):
-      pointDuration = dayjs.duration(diff).format(DurationFormat.DAYS);
-      break;
-    case (diff >= MSEC_IN_HOUR):
-      pointDuration = dayjs.duration(diff).format(DurationFormat.HOURS);
-      break;
-    case (diff < MSEC_IN_HOUR):
-      pointDuration = dayjs.duration(diff).format(DurationFormat.MINS);
-      break;
+  if (diffInDays === 0 && diffInHours === 0) {
+    return dayjs.duration(diffInTotalMinutes, 'minutes').format('mm[M]');
+  } else if (diffInDays === 0) {
+    return dayjs.duration(diffInTotalMinutes, 'minutes').format('HH[H] mm[M]');
   }
-
-  return pointDuration;
+  return dayjs
+    .duration(diffInTotalMinutes, 'minutes')
+    .format('DD[D] HH[H] mm[M]');
 };
 
-const incrementCounter = (START_FROM) => {
-  let counterStart = START_FROM;
-  return function() {
-    return counterStart++;
-  };
+const isFavoriteOption = (isFavorite) =>
+  isFavorite ? 'event__favorite-btn--active' : '';
+const checkDatesRelativeToCurrent = (dateFrom, dateTo) =>
+  dayjs(dateFrom).isBefore(dayjs()) && dayjs(dateTo).isAfter(dayjs());
+const isEventPlanned = (dateFrom, dateTo) =>
+  dayjs(dateFrom).isAfter(dayjs()) ||
+  checkDatesRelativeToCurrent(dateFrom, dateTo);
+const isEventPassed = (dateFrom, dateTo) =>
+  dayjs(dateTo).isBefore(dayjs()) ||
+  checkDatesRelativeToCurrent(dateFrom, dateTo);
+const capitalizeFirstLetter = (str) => str[0].toUpperCase() + str.slice(1);
+const isSubmitDisabledByDate = (dateTo, dateFrom) =>
+  dayjs(dateTo).diff(dayjs(dateFrom)) <= 0;
+const isSubmitDisabledByPrice = (price) =>
+  Number(price) > 0 && Number.isInteger(Number(price));
+const isSubmitDisabledByDestinationName = (name, allDestinations) => {
+  const allDestinationNames = Array.from(allDestinations, (it) => it.name);
+  return allDestinationNames.includes(name);
 };
 
-const toCapitalize = (str) => `${str[0].toUpperCase()}${str.slice(1)}`;
-
-const isPointFuture = (point) => dayjs().isBefore(point.dateFrom);
-const isPointPresent = (point) => dayjs().isAfter(point.dateFrom) && dayjs().isBefore(point.dateTo);
-const isPointPast = (point) => dayjs().isAfter(point.dateTo);
-
-const filterByType = {
-  [FilterType.ANY]: (points) => [...points],
-  [FilterType.FUTURE]: (points) => points.filter((point) => isPointFuture(point)),
-  [FilterType.PRESENT]: (points) => points.filter((point) => isPointPresent(point)),
-  [FilterType.PAST]: (points) => points.filter((point) => isPointPast(point))
+const filter = {
+  [FILTER_TYPES.EVERYTHING]: (events) => events.map((event) => event),
+  [FILTER_TYPES.FUTURE]: (events) =>
+    events.filter((event) => isEventPlanned(event.startDate, event.endDate)),
+  [FILTER_TYPES.PAST]: (events) =>
+    events.filter((event) => isEventPassed(event.startDate, event.endDate)),
 };
 
-
-const sortPointsByDate = (pointA, pointB) => getDatesDiff(pointB.dateFrom, pointA.dateFrom);
-const sortPointsByTime = (pointA, pointB) => {
-  const pointADuration = getDuration(pointA.dateFrom, pointA.dateTo).asMilliseconds();
-  const pointBDuration = getDuration(pointB.dateFrom, pointB.dateTo).asMilliseconds();
-  return pointBDuration - pointADuration;
+const sortByPrice = (a, b) => b.basePrice - a.basePrice;
+const sortByDuration = (a, b) => {
+  const durationA = Math.ceil(
+    dayjs(a.endDate).diff(dayjs(a.startDate), 'minute', true)
+  );
+  const durationB = Math.ceil(
+    dayjs(b.endDate).diff(dayjs(b.startDate), 'minute', true)
+  );
+  return durationB - durationA;
 };
-const sortPointsByPrice = (pointA, pointB) => pointB.basePrice - pointA.basePrice;
-
-const sortByType = {
-  [SortType.DAY]: (points) => points.toSorted(sortPointsByDate),
-  [SortType.EVENT]: () => {
-    throw new Error(`Sort by ${SortType.EVENT} is disabled`);
-  },
-  [SortType.TIME]: (points) => points.toSorted(sortPointsByTime),
-  [SortType.PRICE]: (points) => points.toSorted(sortPointsByPrice),
-  [SortType.OFFER]: () => {
-    throw new Error(`Sort by ${SortType.OFFER} is disabled`);
-  },
-};
-
-const updateItem = (items, update) => items.map((item) => item.id === update.id ? update : item);
-const deleteItem = (items, del) => items.filter((item) => item.id !== del.id);
-
-const convertSnakeCaseToCamelCase = (string) => string.replace(/_([a-z])/g, (result) => result[1].toUpperCase());
-const deepCamelise = (object) => {
-  if (typeof object !== 'object' || object === null) {
-    return object;
-  }
-
-  if (Array.isArray(object)) {
-    return object.map(deepCamelise);
-  }
-
-  const res = Object.fromEntries(Object.entries(object).map(([key, value]) => [convertSnakeCaseToCamelCase(key), deepCamelise(value)]));
-  return res;
-};
-
-const convertCamelCaseToSnakeCase = (string) => string.replace(/[A-Z]/g, (result) => `_${result.toLowerCase()}`);
-const deepSnake = (object) => {
-  if (typeof object !== 'object' || object === null) {
-    return object;
-  }
-
-  if (Array.isArray(object)) {
-    return object.map(deepSnake);
-  }
-
-  const res = Object.fromEntries(Object.entries(object).map(([key, value]) => [convertCamelCaseToSnakeCase(key), deepSnake(value)]));
-  return res;
-};
-
-const mapApiDataToPoint = (data) => deepCamelise(data);
-const mapPointToApiData = (point) => deepSnake(point);
+const sortByDate = (a, b) => dayjs(a.startDate) - dayjs(b.startDate);
 
 export {
-  getRandomArrayElement,
-  getRandomPositiveNumber,
-  getRandomDate,
-  formatDate,
-  calculateDuration,
-  incrementCounter,
-  toCapitalize,
-  filterByType,
-  sortByType,
-  updateItem,
-  deleteItem,
-  mapApiDataToPoint,
-  mapPointToApiData
+  convertEventDateIntoDay,
+  convertEventDateIntoHour,
+  convertEventDateForEditForm,
+  subtractDates,
+  isEventPlanned,
+  isEventPassed,
+  isSubmitDisabledByDate,
+  isSubmitDisabledByPrice,
+  isSubmitDisabledByDestinationName,
+  isFavoriteOption,
+  capitalizeFirstLetter,
+  filter,
+  sortByPrice,
+  sortByDuration,
+  sortByDate,
 };

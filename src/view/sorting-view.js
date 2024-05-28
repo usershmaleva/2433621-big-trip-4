@@ -1,45 +1,75 @@
-import AbstractView from '../framework/view/abstract-view.js';
+import AbstractView from '../framework/view/abstract-view';
+import { SORT_TYPES } from '../const.js';
+import { capitalizeFirstLetter } from '../utils';
 
-function createSortingItemTemplate(column, selectedSortType) {
-  const { type, label, active, defaultSelected } = column;
-  const isChecked = selectedSortType === type || defaultSelected;
-  return `
-    <div class="trip-sort__item  trip-sort__item--${type}">
-      <input id="sort-${type}" class="trip-sort__input  visually-hidden" type="radio" name="trip-sort" value="${type}" ${!active ? 'disabled' : ''} ${isChecked ? 'checked' : ''}>
-      <label class="trip-sort__btn" for="sort-${type}">${label}</label>
-    </div>`;
-}
+const sortTypes = [
+  {
+    name: 'day',
+    type: SORT_TYPES.DEFAULT,
+    isDisabled: false,
+  },
+  {
+    name: 'event',
+    type: '',
+    isDisabled: true,
+  },
+  {
+    name: 'time',
+    type: SORT_TYPES.TIME,
+    isDisabled: false,
+  },
+  {
+    name: 'price',
+    type: SORT_TYPES.PRICE,
+    isDisabled: false,
+  },
+  {
+    name: 'offers',
+    type: '',
+    isDisabled: true,
+  },
+];
 
-function createSortingTemplate(items, selectedSortType) {
-  return `<form class="trip-events__trip-sort trip-sort" action="#" method="get">
-    ${items.map((el) => createSortingItemTemplate(el, selectedSortType)).join('')}
+const createTypeSortTemplate = (sortType) =>
+  sortTypes
+    .map(
+      ({ name, type, isDisabled }) =>
+        `<div class="trip-sort__item  trip-sort__item--${name}">
+    <input id="sort-${name}" class="trip-sort__input  visually-hidden" type="radio"
+      name="trip-sort" value="sort-${name}" data-sort-type="${type}"
+        ${sortType === type ? 'checked' : ''} ${isDisabled ? 'disabled' : ''}>
+    <label class="trip-sort__btn" for="sort-${name}">${capitalizeFirstLetter(name)}</label>
+  </div>`
+    )
+    .join('\n');
+
+const createSortingTemplate = (sortType) =>
+  `<form class="trip-events__trip-sort  trip-sort" action="#" method="get">
+    ${createTypeSortTemplate(sortType)}
   </form>`;
-}
 
 export default class SortingView extends AbstractView {
-  #items = [];
-  #selectedSortType = null;
-  #onSortChange = null;
+  #sortType;
 
-  constructor({
-    items,
-    selectedSortType,
-    onSortChange
-  }) {
+  constructor(sortType) {
     super();
-
-    this.#items = items;
-    this.#selectedSortType = selectedSortType;
-    this.#onSortChange = onSortChange;
-    this.element.addEventListener('change', this.#sortingChangeHandler);
+    this.#sortType = sortType;
   }
 
   get template() {
-    return createSortingTemplate(this.#items, this.#selectedSortType);
+    return createSortingTemplate(this.#sortType);
   }
 
-  #sortingChangeHandler = (evt) => {
-    evt.preventDefault();
-    this.#onSortChange(evt.target.value);
+  setSortHandler = (callback) => {
+    this._callback.sort = callback;
+    this.element.addEventListener('click', this.#sortHandler);
+  };
+
+  #sortHandler = (e) => {
+    if (e.target.type !== 'radio') {
+      return;
+    }
+    e.preventDefault();
+    this._callback.sort(e.target.dataset.sortType);
   };
 }
